@@ -78,7 +78,7 @@ def also_with_noderawfs(func):
 def is_optimizing(args):
   return '-O' in str(args) and '-O0' not in args
 
-class T(RunnerCore): # Short name, to make it more fun to use manually on the commandline
+class TestCoreBase(RunnerCore):
   def is_emterpreter(self):
     return 'EMTERPRETIFY=1' in self.emcc_args
   def is_split_memory(self):
@@ -882,7 +882,7 @@ base align: 0, 0, 0, 0'''])
       }
     '''
     for num in [1, 5, 20, 1000]:
-      print(num)
+      print('NUM=%d' % num)
       self.do_run(src.replace('NUM', str(num)), '0\n' * num)
 
   def test_setjmp_many_2(self):
@@ -5725,6 +5725,7 @@ return malloc(size);
   def test_freetype(self):
     if self.is_windows(): self.skipTest('test_freetype uses a ./configure script to build and therefore currently only runs on Linux and macOS.')
     assert 'asm2g' in core_test_modes
+
     if self.run_name == 'asm2g':
       # flip for some more coverage here
       self.set_setting('ALIASING_FUNCTION_POINTERS', 1 - self.get_setting('ALIASING_FUNCTION_POINTERS'))
@@ -6183,6 +6184,8 @@ def process(filename):
     Building.llvm_dis(filename)
 
   def test_autodebug(self):
+    if self.get_setting('WASM_OBJECT_FILES'):
+      self.skipTest('autodebugging only works with bitcode objects')
     if Building.LLVM_OPTS:
       self.skipTest('LLVM opts mess us up')
     Building.COMPILER_TEST_OPTS += ['--llvm-opts', '0']
@@ -7815,7 +7818,7 @@ def make_run(name, emcc_args=None, env=None):
   if env is None:
     env = {}
 
-  TT = type(name, (T,), dict(run_name=name, env=env))
+  TT = type(name, (TestCoreBase,), {'run_name': name, 'env': env})
 
   def tearDown(self):
     try:
@@ -7863,37 +7866,44 @@ def make_run(name, emcc_args=None, env=None):
 
   TT.setUp = setUp
 
-  return TT
+  globals()[name] = TT
 
 # Main asm.js test modes
-asm0 = make_run('asm0', emcc_args=['-s', 'ASM_JS=2', '-s', 'WASM=0'])
-asm1 = make_run('asm1', emcc_args=['-O1', '-s', 'WASM=0'])
-asm2 = make_run('asm2', emcc_args=['-O2', '-s', 'WASM=0'])
-asm3 = make_run('asm3', emcc_args=['-O3', '-s', 'WASM=0'])
-asm2g = make_run('asm2g', emcc_args=['-O2', '-s', 'WASM=0', '-g', '-s', 'ASSERTIONS=1', '-s', 'SAFE_HEAP=1'])
+make_run('asm0', emcc_args=['-s', 'ASM_JS=2', '-s', 'WASM=0'])
+make_run('asm1', emcc_args=['-O1', '-s', 'WASM=0'])
+make_run('asm2', emcc_args=['-O2', '-s', 'WASM=0'])
+make_run('asm3', emcc_args=['-O3', '-s', 'WASM=0'])
+make_run('asm2g', emcc_args=['-O2', '-s', 'WASM=0', '-g', '-s', 'ASSERTIONS=1', '-s', 'SAFE_HEAP=1'])
 
 # Main wasm test modes
-binaryen0 = make_run('binaryen0', emcc_args=['-O0'])
-binaryen1 = make_run('binaryen1', emcc_args=['-O1'])
-binaryen2 = make_run('binaryen2', emcc_args=['-O2'])
-binaryen3 = make_run('binaryen3', emcc_args=['-O3'])
-binaryens = make_run('binaryens', emcc_args=['-Os'])
-binaryenz = make_run('binaryenz', emcc_args=['-Oz'])
+make_run('binaryen0', emcc_args=['-O0'])
+make_run('binaryen1', emcc_args=['-O1'])
+make_run('binaryen2', emcc_args=['-O2'])
+make_run('binaryen3', emcc_args=['-O3'])
+make_run('binaryens', emcc_args=['-Os'])
+make_run('binaryenz', emcc_args=['-Oz'])
+
+make_run('wasmobj0', emcc_args=['-O0', '-s', 'WASM_OBJECT_FILES=1'])
+make_run('wasmobj1', emcc_args=['-O1', '-s', 'WASM_OBJECT_FILES=1'])
+make_run('wasmobj2', emcc_args=['-O2', '-s', 'WASM_OBJECT_FILES=1'])
+make_run('wasmobj3', emcc_args=['-O3', '-s', 'WASM_OBJECT_FILES=1'])
+make_run('wasmobjs', emcc_args=['-Os', '-s', 'WASM_OBJECT_FILES=1'])
+make_run('wasmobjz', emcc_args=['-Oz', '-s', 'WASM_OBJECT_FILES=1'])
 
 # Secondary test modes - run directly when there is a specific need
 
 # asm.js
-asm2f = make_run('asm2f', emcc_args=['-Oz', '-s', 'PRECISE_F32=1', '-s', 'ALLOW_MEMORY_GROWTH=1', '-s', 'WASM=0'])
-asm2nn = make_run('asm2nn', emcc_args=['-O2', '-s', 'WASM=0'], env={'EMCC_NATIVE_OPTIMIZER': '0'})
+make_run('asm2f', emcc_args=['-Oz', '-s', 'PRECISE_F32=1', '-s', 'ALLOW_MEMORY_GROWTH=1', '-s', 'WASM=0'])
+make_run('asm2nn', emcc_args=['-O2', '-s', 'WASM=0'], env={'EMCC_NATIVE_OPTIMIZER': '0'})
 
 # wasm
-binaryen2jo = make_run('binaryen2jo', emcc_args=['-O2', '-s', 'BINARYEN_METHOD="native-wasm,asmjs"'])
-binaryen3jo = make_run('binaryen3jo', emcc_args=['-O3', '-s', 'BINARYEN_METHOD="native-wasm,asmjs"'])
-binaryen2s = make_run('binaryen2s', emcc_args=['-O2', '-s', 'SAFE_HEAP=1'])
-binaryen2_interpret = make_run('binaryen2_interpret', emcc_args=['-O2', '-s', 'BINARYEN_METHOD="interpret-binary"'])
+make_run('binaryen2jo', emcc_args=['-O2', '-s', 'BINARYEN_METHOD="native-wasm,asmjs"'])
+make_run('binaryen3jo', emcc_args=['-O3', '-s', 'BINARYEN_METHOD="native-wasm,asmjs"'])
+make_run('binaryen2s', emcc_args=['-O2', '-s', 'SAFE_HEAP=1'])
+make_run('binaryen2_interpret', emcc_args=['-O2', '-s', 'BINARYEN_METHOD="interpret-binary"'])
 
 # emterpreter
-asmi = make_run('asmi', emcc_args=['-s', 'ASM_JS=2', '-s', 'EMTERPRETIFY=1', '-s', 'WASM=0'])
-asm2i = make_run('asm2i', emcc_args=['-O2', '-s', 'EMTERPRETIFY=1', '-s', 'WASM=0'])
+make_run('asmi', emcc_args=['-s', 'ASM_JS=2', '-s', 'EMTERPRETIFY=1', '-s', 'WASM=0'])
+make_run('asm2i', emcc_args=['-O2', '-s', 'EMTERPRETIFY=1', '-s', 'WASM=0'])
 
-del T # T is just a shape for the specific subclasses, we don't test it itself
+del TestCoreBase # TestCoreBase is just a shape for the specific subclasses, we don't test it itself
