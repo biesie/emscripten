@@ -1630,7 +1630,7 @@ There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR P
 
     with ToolchainProfiler.profile_block('link'):
       # final will be an array if linking is deferred, otherwise a normal string.
-      if shared.Settings.WASM_OBJECT_FILES:
+      if shared.Settings.WASM_BACKEND:
         DEFAULT_FINAL = in_temp(target_basename + '.wasm')
       else:
         DEFAULT_FINAL = in_temp(target_basename + '.bc')
