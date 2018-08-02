@@ -846,7 +846,7 @@ There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR P
             elif arg_ending.endswith(HEADER_ENDINGS):
               input_files.append((i, arg))
               has_header_inputs = True
-            elif arg_ending.endswith(ASSEMBLY_ENDINGS) or shared.Building.is_bitcode(arg):
+            elif arg_ending.endswith(ASSEMBLY_ENDINGS) or shared.Building.is_bitcode(arg): # this should be bitcode, make sure it is valid
               input_files.append((i, arg))
             elif arg_ending.endswith(STATICLIB_ENDINGS + DYNAMICLIB_ENDINGS):
               # if it's not, and it's a library, just add it to libs to find later
@@ -859,7 +859,7 @@ There is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR P
                   break
               libs.append((i, l))
               newargs[i] = ''
-            elif (shared.Settings.WASM_OBJECT_FILES or 'WASM_OBJECT_FILES=1' in settings_changes) and shared.Building.is_wasm(arg):
+            elif 'WASM_OBJECT_FILES=1' in settings_changes and shared.Building.is_wasm(arg):
               input_files.append((i, arg))
             else:
               logging.warning(arg + ' is not valid LLVM bitcode')
