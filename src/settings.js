@@ -741,7 +741,7 @@ var WASM_BACKEND = 0; // Whether to use the WebAssembly backend that is in devel
                       // You should not set this yourself, instead set EMCC_WASM_BACKEND=1 in the
                       // environment.
 
-var WASM_OBJECT_FILES = 0; // Whether to compiler object files as wasm as opposed to the default
+var WASM_OBJECT_FILES = 0; // Whether to compile object files as wasm as opposed to the default
                            // of using LLVM IR.
 
 var BINARYEN_METHOD = "native-wasm"; // How we should run WebAssembly code. By default, we run it natively.
